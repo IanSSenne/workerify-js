@@ -39,9 +39,12 @@
         window.WorkerifyWorkerHost = WorkerifyWorkerHost;
         function runModifyImage() {
             const chunkSize = +document.getElementById("chunkSize").value;
+            let g = 0;
+            let max = Math.ceil(canvas.width / chunkSize) * Math.ceil(canvas.height / chunkSize);
             for (let y = 0; y < canvas.height; y += chunkSize) {
                 for (let x = 0; x < canvas.width; x += chunkSize) {
                     let data = Array.from(ctx.getImageData(x, y, chunkSize, chunkSize).data);
+                    console.log(g++ + "/" + max);
                     modifyImage({ data, width: chunkSize, height: chunkSize, x, y }).then(
                         raw => {
                             console.log("put data in chunk ", x / chunkSize, y / chunkSize);

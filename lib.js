@@ -1,7 +1,8 @@
 const WorkerifyDefaultOptions = {
     maxWorkers: 1,
     timeout: 60000,
-    idleTime: 30000
+    idleTime: 30000,
+    info: false
 };
 let generatedId = 0;
 function textToUrl(arr) {
@@ -25,9 +26,12 @@ class WorkerifyWorkerHost {
         this.options = options
         this.timeout = options.timeout;
         this.idleTime = options.idleTime;
+        this.calls = 0;
         if (this.preserved) this.populateWorker();
     }
     destroy() {
+        if (this.options.info) console.log("terminating worker for worker host with id=" + this.id, "worker recieved " + this.calls + " calls");
+        this.calls = 0;
         if (this.Worker) {
             this.Worker.terminate();
             this.Worker = null;
@@ -54,6 +58,7 @@ class WorkerifyWorkerHost {
     }
     call(args) {
         this.isWorking = true;
+        this.calls++;
         if (!this.Worker) {
             this.populateWorker();
         }
@@ -80,6 +85,7 @@ class WorkerifyWorkerHost {
                 }, this.idleTime);
                 this.onTaskComplete(this);
             };
+            if (this.options.info) console.log("sending data to worker with id=" + this.id);
             this.Worker.postMessage(JSON.stringify(args));
         });
     }

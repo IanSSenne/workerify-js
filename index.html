@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body style="background-color: gray;">
+    <label>image file:</label> <br />
+    <input type="file" id="imageLoader" name="imageLoader" /><br />
+    <label>chunk size:</label> <br />
+    <input type="number" min="8" max="1024" value="256" id="chunkSize" name="chunkSize" /><br /><button
+        id="go">Go!</button><br />
+    <canvas id="imageCanvas"></canvas>
+    <script type="module">
+        import * as lib from "./lib.js"; window.Workerify = lib.default;
+        var imageLoader = document.getElementById('imageLoader');
+        imageLoader.addEventListener('change', handleImage, false);
+        var canvas = document.getElementById('imageCanvas');
+        var ctx = canvas.getContext('2d');
+        const [modifyImage, terminate, WorkerifyWorkerHost] = Workerify(function ({ data, width, height, x, y }) {
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i + 0];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const a = data[i + 3];
+                data[i + 0] = 255 - r;
+                data[i + 1] = 255 - g;
+                data[i + 2] = 255 - b;
+                data[i + 3] = a;
+            }
+            return data;
+        }, { maxWorkers: 50, timeout: 60000, idleTime: 100 });
+        window.modifyImage = modifyImage;
+        window.terminate = terminate;
+        window.WorkerifyWorkerHost = WorkerifyWorkerHost;
+        function runModifyImage() {
+            const chunkSize = +document.getElementById("chunkSize").value;
+            for (let y = 0; y < canvas.height; y += chunkSize) {
+                for (let x = 0; x < canvas.width; x += chunkSize) {
+                    let data = Array.from(ctx.getImageData(x, y, chunkSize, chunkSize).data);
+                    modifyImage({ data, width: chunkSize, height: chunkSize, x, y }).then(
+                        raw => {
+                            console.log("put data in chunk ", x / chunkSize, y / chunkSize);
+                            ctx.putImageData(new ImageData(new Uint8ClampedArray(raw), chunkSize, chunkSize), x, y);
+                        }
+                    );
+                }
+            }
+        }
+        document.getElementById("go").addEventListener("click", runModifyImage);
+        async function handleImage(e) {
+            var reader = new FileReader();
+            reader.onload = async function (event) {
+                var img = new Image();
+                img.onload = async function () {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(e.target.files[0]);
+        }
+
+        //# sourceURL=JS://GLOBALSCOPE/demo
+    </script>
+</body>
+
+</html>

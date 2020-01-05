@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body style="background-color: gray;">
+    <div style="position:absolute;top:0px;left:0px;background-color:white;">
+        <h1>controls</h1>
+        panx:<input watched id="panx" type="number" value="-100"><br />
+        pany:<input watched id="pany" type="number" value="0"><br />
+        zoom:<input watched id="zoom" type="number" value="150" min="1"><br />
+        max iterations:<input watched id="itter" type="number" value="250" min="1" max="256"><br />
+        chunk size:<input id="chunksize" type="number" value="32" min="1"><br />
+        current tasks remaining:<span id="tasks">0</span>
+    </div>
+
+    <canvas id="imageCanvas" style="width:100vw;height:100vh;"></canvas>
+    <script type="module">
+        import * as lib from "./lib.js"; window.Workerify = lib.default;
+        function resize() {
+            const c = document.getElementById("imageCanvas");
+            c.setAttribute("width", window.innerWidth);
+            c.setAttribute("height", window.innerHeight);
+            runModifyImage();
+        }
+        document.addEventListener("resize", resize);
+        var canvas = document.getElementById('imageCanvas');
+        var ctx = canvas.getContext('2d');
+        const [modifyImage, terminate, WorkerifyWorkerHost] = Workerify(function ({ width, height, chunkx, chunky, conf, palette }) {
+            let data = new Uint8ClampedArray(Array(width * height * 4).fill(0));
+            var offsetx = conf.offsetx;
+            var offsety = conf.offsety;
+            var panx = conf.panx;
+            var pany = conf.pany;
+            var zoom = conf.zoom;
+            var maxiterations = conf.maxiterations;
+            for (let _x = 0; _x < width; _x++) {
+                for (let _y = 0; _y < height; _y++) {
+                    const x = chunkx + _x;
+                    const y = chunky + _y;
+                    var x0 = (x + offsetx + panx) / zoom;
+                    var y0 = (y + offsety + pany) / zoom;
+
+                    // Iteration variables
+                    var a = 0;
+                    var b = 0;
+                    var rx = 0;
+                    var ry = 0;
+
+                    // Iterate
+                    var iterations = 0;
+                    while (iterations < maxiterations && (rx * rx + ry * ry <= 4)) {
+                        rx = a * a - b * b + x0;
+                        ry = 2 * a * b + y0;
+
+                        // Next iteration
+                        a = rx;
+                        b = ry;
+                        iterations++;
+                    }
+
+                    // Get palette color based on the number of iterations
+                    var color;
+                    if (iterations == maxiterations) {
+                        color = { r: 0, g: 0, b: 0 }; // Black
+                    } else {
+                        var index = Math.floor((iterations / (maxiterations - 1)) * 255);
+                        color = palette[index];
+                    }
+
+                    // Apply the color
+                    var pixelindex = (_y * width + _x) * 4;
+                    data[pixelindex] = color.r;
+                    data[pixelindex + 1] = color.g;
+                    data[pixelindex + 2] = color.b;
+                    data[pixelindex + 3] = 255;
+                }
+            }
+            return Array.from(data);
+        }, { maxWorkers: 15, timeout: 60000, idleTime: 100 });
+        window.modifyImage = modifyImage;
+        window.terminate = terminate;
+        window.WorkerifyWorkerHost = WorkerifyWorkerHost;
+        let requestId = null;
+        function runModifyImage() {
+            if (WorkerifyWorkerHost.TaskQueue.length > 0) {
+                if (requestId === null) {
+                    requestId = setTimeout(runModifyImage, 10);
+                } else {
+                    clearTimeout(requestId);
+                    requestId = setTimeout(runModifyImage, 10);
+                }
+                return;
+            }
+            requestId = null;
+            let chunkSize = +document.getElementById("chunksize").value;
+            chunkSize = Number.isNaN(chunkSize) ? 32 : Math.max(1, chunkSize);
+            const conf = {};
+            conf.offsetx = -canvas.width / 2;
+            conf.offsety = -canvas.height / 2;
+            conf.panx = +document.getElementById("panx").value;
+            conf.pany = +document.getElementById("pany").value;
+            conf.zoom = +document.getElementById("zoom").value;
+            conf.maxiterations = +document.getElementById("itter").value;
+            var palette = [];
+            var roffset = 24;
+            var goffset = 16;
+            var boffset = 0;
+            for (var i = 0; i < 256; i++) {
+                palette[i] = { r: roffset, g: goffset, b: boffset };
+
+                if (i < 64) {
+                    roffset += 3;
+                } else if (i < 128) {
+                    goffset += 3;
+                } else if (i < 192) {
+                    boffset += 3;
+                }
+            }
+            const tasks = document.getElementById("tasks");
+            for (let y = 0; y < canvas.height; y += chunkSize) {
+                for (let x = 0; x < canvas.width; x += chunkSize) {
+                    // let data = Array.from(ctx.getImageData(x, y, chunkSize, chunkSize).data);
+                    modifyImage({ width: chunkSize, height: chunkSize, chunkx: x, chunky: y, conf, palette }).then(
+                        raw => {
+                            console.log("put data in chunk ", x / chunkSize, y / chunkSize);
+                            ctx.putImageData(new ImageData(new Uint8ClampedArray(raw), chunkSize, chunkSize), x, y);
+                            tasks.innerText = WorkerifyWorkerHost.TaskQueue.length;
+                        }
+                    );
+                }
+            }
+        }
+        [...document.querySelectorAll("input[watched]")].forEach(inp => inp.addEventListener("change", runModifyImage));
+        // runModifyImage();
+
+        resize();
+        //# sourceURL=JS://GLOBALSCOPE/demo
+    </script>
+</body>
+
+</html>

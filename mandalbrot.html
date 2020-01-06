@@ -102,6 +102,7 @@
         window.addEventListener("resize", resize);
         var canvas = document.getElementById('imageCanvas');
         canvas.addEventListener("mousedown", (evt) => {
+            if (evt.button != 0) return;
             let zoom = +document.getElementById("zoom").value;
             const x = ((canvas.width / 2) - evt.clientX);
             const y = ((canvas.height / 2) - evt.clientY);

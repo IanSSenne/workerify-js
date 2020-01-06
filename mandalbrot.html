@@ -173,10 +173,14 @@
         [...document.querySelectorAll("input[watched]")].forEach(inp => {
             inp.addEventListener("change", runModifyImage);
         });
-        [...document.querySelectorAll("input")].forEach(inp => {
-            let v = opts.shift();
-            if (v) inp.value = v;
-        });
+        if (opts) {
+            [...document.querySelectorAll("input")].forEach(inp => {
+                let v = opts.shift();
+                if (v) inp.value = v;
+            });
+        } else {
+            opts = [];
+        }
 
         resize();
     </script>

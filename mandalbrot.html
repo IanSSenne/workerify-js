@@ -19,7 +19,7 @@
 <body style="background-color: gray;">
     <div style="position:absolute;top:0px;left:0px;background-color:white;">
         <h1>controls</h1>
-        panx:<input watched id="panx" type="number" value="-100"><br />
+        panx:<input watched id="panx" type="number" value="-1"><br />
         pany:<input watched id="pany" type="number" value="0"><br />
         zoom:<input watched id="zoom" type="number" value="100" min="1"><br />
         max iterations:<input watched id="itter" type="number" value="256" min="1" max="256"><br />
@@ -104,8 +104,8 @@
         canvas.addEventListener("mousedown", (evt) => {
             if (evt.button != 0) return;
             let zoom = +document.getElementById("zoom").value;
-            const x = ((canvas.width / 2) - evt.clientX);
-            const y = ((canvas.height / 2) - evt.clientY);
+            const x = ((canvas.width / 2) - evt.clientX) / zoom;
+            const y = ((canvas.height / 2) - evt.clientY) / zoom;
             document.getElementById("panx").value = (Number(document.getElementById("panx").value) - x).toString();
             document.getElementById("pany").value = (Number(document.getElementById("pany").value) - y).toString();
             runModifyImage();
@@ -136,8 +136,8 @@
             const conf = {};
             conf.offsetx = -canvas.width / 2;
             conf.offsety = -canvas.height / 2;
-            conf.panx = +document.getElementById("panx").value;
-            conf.pany = +document.getElementById("pany").value;
+            conf.panx = +document.getElementById("panx").value * +document.getElementById("zoom").value;
+            conf.pany = +document.getElementById("pany").value * +document.getElementById("zoom").value;
             conf.zoom = +document.getElementById("zoom").value * 4;
             conf.maxiterations = +document.getElementById("itter").value;
             var palette = [];

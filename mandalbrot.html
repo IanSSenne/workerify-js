@@ -26,12 +26,16 @@
         samples:<input watched id="samples" type="number" value="10" min="1"><br />
         chunk size:<input id="chunksize" type="number" value="128" min="1"><br />
         current tasks remaining:<H1 id="tasks">0</H1>
+        <a id="save">save these options</a>
     </div>
-
     <canvas id="imageCanvas" style="width:100vw;height:100vh;"></canvas>
     <script type="module">
         import * as lib from "./lib.js"; window.Workerify = lib.default;
-
+        const g = new URLSearchParams(window.location.search)
+        let opts = null;
+        try { opts = JSON.parse(g.get("opts")) } catch (e) {
+            opts = [];
+        }
         //calculate mandalbrot
         const [modifyImage, terminate, WorkerifyWorkerHost] = Workerify(function ({ width, height, chunkx, chunky, conf, palette, sampleCount }) {
             let data = new Uint8ClampedArray(Array(width * height * 4).fill(0));
@@ -97,6 +101,14 @@
         }
         window.addEventListener("resize", resize);
         var canvas = document.getElementById('imageCanvas');
+        canvas.addEventListener("mousedown", (evt) => {
+            let zoom = +document.getElementById("zoom").value;
+            const x = ((canvas.width / 2) - evt.clientX);
+            const y = ((canvas.height / 2) - evt.clientY);
+            document.getElementById("panx").value = (Number(document.getElementById("panx").value) - x).toString();
+            document.getElementById("pany").value = (Number(document.getElementById("pany").value) - y).toString();
+            runModifyImage();
+        })
         var ctx = canvas.getContext('2d');
 
         let requestId = null;
@@ -111,6 +123,13 @@
                 return;
             }
             requestId = null;
+
+            [...document.querySelectorAll("input")].forEach((inp, ind) => {
+                opts[ind] = +inp.value;
+            });
+            let url = new URL(window.location.toString());
+            url.search = "opts=" + JSON.stringify(opts);
+            document.getElementById("save").href = url.toString();
             let chunkSize = +document.getElementById("chunksize").value;
             chunkSize = Number.isNaN(chunkSize) ? 32 : Math.max(1, chunkSize);
             const conf = {};
@@ -151,7 +170,13 @@
                 }
             }
         }
-        [...document.querySelectorAll("input[watched]")].forEach(inp => inp.addEventListener("change", runModifyImage));
+        [...document.querySelectorAll("input[watched]")].forEach(inp => {
+            inp.addEventListener("change", runModifyImage);
+        });
+        [...document.querySelectorAll("input")].forEach(inp => {
+            let v = opts.shift();
+            if (v) inp.value = v;
+        });
 
         resize();
     </script>

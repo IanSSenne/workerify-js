@@ -103,7 +103,7 @@ function runModifyImage() {
     url.search = "opts=" + JSON.stringify(opts);
     url.hash = "#";
     document.getElementById("save").href = url.toString();
-    url.pathname = "/mandalbrot-record.html";
+    url.pathname = "/workerify-js/mandalbrot-record.html";
     document.getElementById("record").href = url.toString();
     let chunkSize = +document.getElementById("chunksize").value;
     chunkSize = Number.isNaN(chunkSize) ? 32 : Math.max(1, chunkSize);

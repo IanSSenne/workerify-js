@@ -62,7 +62,7 @@ function workerifyInputFunc() {
 }
 const DemoPureFunc = workerifyInputFunc();
 const [modifyImage, terminate, WorkerifyWorkerHost] = Workerify(workerifyInputFunc, { maxWorkers: 25, timeout: 5 * 60000, idleTime: 100, info: false, initializer: true });
-
+const [modifyImageSingle, terminateSingle, WorkerifyWorkerHostSingle] = Workerify(workerifyInputFunc, { maxWorkers: 1, timeout: 5 * 60000, idleTime: 100, info: false, initializer: true });
 
 //ui / request render
 
@@ -136,6 +136,7 @@ function runModifyImage() {
     const totalChunks = Math.ceil(canvas.width / chunkSize) * Math.ceil(canvas.height / chunkSize);
     let completeChunks = 0;
     const useWorkerify = document.getElementById("use-workerify").checked;
+    console.log(useWorkerify);
     for (let y = 0; y < canvas.height; y += chunkSize) {
         for (let x = 0; x < canvas.width; x += chunkSize) {
             if (useWorkerify) {
@@ -147,10 +148,13 @@ function runModifyImage() {
                     }
                 );
             } else {
-                const raw = DemoPureFunc({ width: chunkSize, height: chunkSize, chunkx: x, chunky: y, conf, palette, sampleCount });
-                ctx.putImageData(new ImageData(new Uint8ClampedArray(raw), chunkSize, chunkSize), x, y);
-                completeChunks++;
-                tasks.innerText = completeChunks + "/" + totalChunks;
+                modifyImageSingle({ width: chunkSize, height: chunkSize, chunkx: x, chunky: y, conf, palette, sampleCount }).then(
+                    raw => {
+                        ctx.putImageData(new ImageData(new Uint8ClampedArray(raw), chunkSize, chunkSize), x, y);
+                        completeChunks++;
+                        tasks.innerText = completeChunks + "/" + totalChunks;
+                    }
+                );
             }
         }
     }

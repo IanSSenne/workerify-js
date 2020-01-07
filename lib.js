@@ -2,7 +2,8 @@ const WorkerifyDefaultOptions = {
     maxWorkers: 1,
     timeout: 60000,
     idleTime: 30000,
-    info: false
+    info: false,
+    initializer: false
 };
 let generatedId = 0;
 function textToUrl(arr) {
@@ -23,7 +24,7 @@ class WorkerifyWorkerHost {
         this.lastCallId = null;
         this.asyncCallback = null;
         this.preserved = preserve;
-        this.options = options
+        this.options = options;
         this.timeout = options.timeout;
         this.idleTime = options.idleTime;
         this.calls = 0;
@@ -94,13 +95,13 @@ class WorkifyManager {
     constructor(func, options) {
         this.func = func;
         this.options = options;
-        this.url = textToUrl([`const func = ${this.func}`, `globalThis.onmessage=async ({data})=>{
+        this.url = textToUrl([options.initializer ? `const func = (${this.func})()` : `const func = ${this.func}`, `globalThis.onmessage=async ({data})=>{
     try{
         let res = func(...JSON.parse(data));
         if(res instanceof Promise)res = await res;
         postMessage(JSON.stringify({value:res,err:null}));
     }catch(e){
-        postMessage(JSON.stringify({value:null,err:{message:e.message,raw:{...e}}}));
+        postMessage(JSON.stringify({value:null,err:{message:e.message,stack:e.stack}}));
     }
 }`]);
         this.Workers = [];

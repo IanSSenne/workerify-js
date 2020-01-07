@@ -62,6 +62,8 @@ function workerifyInputFunc() {
 }
 const DemoPureFunc = workerifyInputFunc();
 const [modifyImage, terminate, WorkerifyWorkerHost] = Workerify(workerifyInputFunc, { maxWorkers: 25, timeout: 5 * 60000, idleTime: 100, info: false, initializer: true });
+
+//simulate using a single worker for task, not on main thread to not do page blocking...
 const [modifyImageSingle, terminateSingle, WorkerifyWorkerHostSingle] = Workerify(workerifyInputFunc, { maxWorkers: 1, timeout: 5 * 60000, idleTime: 100, info: false, initializer: true });
 
 //ui / request render

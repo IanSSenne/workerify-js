@@ -88,6 +88,22 @@ canvas.addEventListener("mousedown", (evt) => {
 var ctx = canvas.getContext('2d');
 
 let requestId = null;
+var palette = [];
+var roffset = 24;
+var goffset = 16;
+var boffset = 0;
+for (var i = 0; i < 256; i++) {
+    palette[i] = { r: roffset, g: goffset, b: boffset };
+
+    if (i < 64) {
+        roffset += 3;
+    } else if (i < 128) {
+        goffset += 3;
+    } else if (i < 192) {
+        boffset += 3;
+    }
+    // palette[i] = { r: Math.floor(Math.random() * 256), g: Math.floor(Math.random() * 256), b: Math.floor(Math.random() * 256) }
+}
 function runModifyImage() {
     if (WorkerifyWorkerHost.TaskQueue.length > 0) {
         if (requestId === null) {
@@ -118,22 +134,7 @@ function runModifyImage() {
     conf.pany = +document.getElementById("pany").value * +document.getElementById("zoom").value;
     conf.zoom = +document.getElementById("zoom").value * 4;
     conf.maxiterations = +document.getElementById("itter").value;
-    var palette = [];
-    var roffset = 24;
-    var goffset = 16;
-    var boffset = 0;
     var sampleCount = +document.getElementById("samples").value;
-    for (var i = 0; i < 256; i++) {
-        palette[i] = { r: roffset, g: goffset, b: boffset };
-
-        if (i < 64) {
-            roffset += 3;
-        } else if (i < 128) {
-            goffset += 3;
-        } else if (i < 192) {
-            boffset += 3;
-        }
-    }
     const tasks = document.getElementById("tasks");
     const totalChunks = Math.ceil(canvas.width / chunkSize) * Math.ceil(canvas.height / chunkSize);
     let completeChunks = 0;
